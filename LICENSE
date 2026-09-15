@@ -19,11 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-
-Third-party data notice: `bloatware.json` is a curated subset derived from
-Universal Android Debloater Next Generation
-(https://github.com/Universal-Debloater-Alliance/universal-android-debloater-next-generation),
-which is licensed under GPL-3.0. That data file is NOT covered by the MIT
-license above and remains under its original terms.
