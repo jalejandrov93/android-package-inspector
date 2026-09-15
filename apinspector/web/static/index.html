@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Android Package Inspector</title>
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header>
+  <div class="hrow">
+    <h1>🛡️ Android Package Inspector</h1>
+    <span id="offlineBadge" class="badge offline" style="display:none">MODO OFFLINE</span>
+    <span id="noDeviceBadge" class="badge nodev" style="display:none">SIN DISPOSITIVO</span>
+    <span class="stats" id="stats">Cargando…</span>
+    <span style="margin-left:auto"></span>
+    <label class="stats" title="Escanear también apps de sistema (bloatware)"
+      style="display:flex;align-items:center;gap:6px;cursor:pointer">
+      <input type="checkbox" id="sysToggle"> Incluir sistema</label>
+    <button id="btnWifi" title="Conectar por ADB inalámbrico (WiFi)">📶 WiFi</button>
+    <button id="rescan">↻ Rescan</button>
+    <button id="export">⬇ Export</button>
+  </div>
+  <div id="scanbar" style="display:none;margin-top:8px">
+    <div class="stats" id="scanmsg"></div>
+    <div style="height:4px;background:var(--panel2);border-radius:3px;overflow:hidden;margin-top:4px">
+      <div id="scanfill" style="height:100%;width:0;background:var(--accent2);transition:width .1s"></div>
+    </div>
+  </div>
+</header>
+
+<div class="toolbar">
+  <input id="search" placeholder="🔍 Buscar paquete…" style="min-width:220px">
+  <span id="chips"></span>
+  <label class="stats">Agrupar:
+    <select id="group">
+      <option value="none">—</option>
+      <option value="risk">Riesgo</option>
+      <option value="type">Tipo</option>
+      <option value="installer">Installer</option>
+    </select>
+  </label>
+</div>
+
+<main>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:28px"><input type="checkbox" id="selall"></th>
+        <th data-sort="stars" style="width:90px">Riesgo</th>
+        <th data-sort="package">Paquete</th>
+        <th data-sort="type" style="width:90px">Tipo</th>
+        <th style="width:40%">Flags</th>
+      </tr>
+    </thead>
+    <tbody id="rows"></tbody>
+  </table>
+</main>
+
+<div class="logpanel" id="logpanel">
+  <div class="loghdr">
+    <b>Registro de acciones</b>
+    <span id="logstatus" class="stats"></span>
+    <span style="margin-left:auto"></span>
+    <button id="logclear" style="padding:3px 8px">Limpiar</button>
+    <button id="logclose" style="padding:3px 8px">Ocultar</button>
+  </div>
+  <div class="logbody" id="logbody"></div>
+</div>
+
+<div class="actionbar">
+  <span class="sel" id="selcount">0 seleccionadas</span>
+  <button id="btnLog" title="Ver registro en vivo">📜 Log</button>
+  <button id="btnFreeze">❄ Congelar</button>
+  <button id="btnUnfreeze">☀ Descongelar</button>
+  <button id="btnUninstall" class="danger">🗑 Desinstalar</button>
+</div>
+
+<div class="overlay-bg" id="obg"></div>
+<div class="drawer" id="drawer"></div>
+<div class="modal" id="modal"></div>
+<div class="modal" id="wifiModal">
+  <h3>📶 Conexión WiFi / ADB inalámbrico</h3>
+  <div class="wtabs">
+    <button class="chip active" data-wtab="ip">IP directa</button>
+    <button class="chip" data-wtab="pair">Pairing Android 11+</button>
+    <button class="chip" data-wtab="discover">Discover</button>
+  </div>
+  <div id="wtab-ip" class="wtabpane">
+    <p class="hint">Requiere que el teléfono ya escuche en TCP. Una vez por USB:
+      <code>adb tcpip 5555</code>. En Android 11+ usa la pestaña Pairing.</p>
+    <label>IP <input id="wHost" placeholder="192.168.1.50"></label>
+    <label>Puerto <input id="wPort" value="5555" style="width:100px"></label>
+    <button class="primary" id="wConnectBtn">Conectar</button>
+  </div>
+  <div id="wtab-pair" class="wtabpane" style="display:none">
+    <p class="hint">En el teléfono: Opciones de desarrollador → Depuración
+      inalámbrica → «Vincular dispositivo con código».</p>
+    <label>IP <input id="pHost" placeholder="192.168.1.50"></label>
+    <label>Puerto pairing <input id="pPort" placeholder="37451" style="width:110px"></label>
+    <label>Código <input id="pCode" placeholder="123456" style="width:110px"></label>
+    <button class="primary" id="wPairBtn">Vincular</button>
+    <div id="pairNote" class="hint"></div>
+  </div>
+  <div id="wtab-discover" class="wtabpane" style="display:none">
+    <p class="hint">Busca servicios mDNS anunciados por el teléfono.</p>
+    <button id="wDiscoverBtn">Buscar servicios mDNS</button>
+    <div id="discoveryList"></div>
+  </div>
+  <pre id="wifiLog" class="wifi-log"></pre>
+  <div class="row">
+    <button onclick="closeWifi()">Cerrar</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="/static/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# Normalize text to LF in the repository; keep Windows scripts as-is.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.webp binary
+*.ico binary
+*.apk binary
+*.exe binary
+*.dll binary

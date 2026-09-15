@@ -1,0 +1,41 @@
+# Platform-tools binaries (install separately; not part of this project)
+adb.exe
+adb
+fastboot.exe
+etc1tool.exe
+hprof-conv.exe
+make_f2fs.exe
+make_f2fs_casefold.exe
+mke2fs.exe
+mke2fs.conf
+sqlite3.exe
+AdbWinApi.dll
+AdbWinUsbApi.dll
+libwinpthread-1.dll
+source.properties
+NOTICE.txt
+
+# Runtime output and device data (may contain personal information)
+report.json
+recommendations.txt
+actions.log
+packages_info.txt
+*.apk
+
+# Generated caches
+__pycache__/
+*.py[cod]
+.icon_cache/
+.pytest_cache/
+
+# Local tooling / editors / envs
+.atl/
+.venv/
+venv/
+.idea/
+.vscode/
+*.bak
+
+# OS noise
+.DS_Store
+Thumbs.db
