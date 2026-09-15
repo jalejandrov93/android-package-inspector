@@ -3,116 +3,177 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
 <title>Android Package Inspector</title>
 <link rel="stylesheet" href="/static/app.css">
 </head>
 <body>
-<header>
-  <div class="hrow">
-    <h1>🛡️ Android Package Inspector</h1>
-    <span id="offlineBadge" class="badge offline" style="display:none">MODO OFFLINE</span>
-    <span id="noDeviceBadge" class="badge nodev" style="display:none">SIN DISPOSITIVO</span>
-    <span class="stats" id="stats">Cargando…</span>
-    <span style="margin-left:auto"></span>
-    <label class="stats" title="Escanear también apps de sistema (bloatware)"
-      style="display:flex;align-items:center;gap:6px;cursor:pointer">
-      <input type="checkbox" id="sysToggle"> Incluir sistema</label>
-    <button id="btnWifi" title="Conectar por ADB inalámbrico (WiFi)">📶 WiFi</button>
-    <button id="rescan">↻ Rescan</button>
-    <button id="export">⬇ Export</button>
-  </div>
-  <div id="scanbar" style="display:none;margin-top:8px">
-    <div class="stats" id="scanmsg"></div>
-    <div style="height:4px;background:var(--panel2);border-radius:3px;overflow:hidden;margin-top:4px">
-      <div id="scanfill" style="height:100%;width:0;background:var(--accent2);transition:width .1s"></div>
+<div class="bg-ambient" aria-hidden="true"></div>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 2.5 20 6v6c0 5-3.4 8.3-8 9.5C7.4 20.3 4 17 4 12V6l8-3.5Z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="m8.8 12 2.2 2.2 4.2-4.4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </span>
+      <span class="brand-text">
+        <strong>Android Package Inspector</strong>
+        <small>Auditoria de paquetes · ADB local</small>
+      </span>
+      <span id="offlineBadge" class="badge offline" style="display:none">Offline</span>
+      <span id="noDeviceBadge" class="badge nodev" style="display:none">Sin dispositivo</span>
     </div>
+    <div class="topbar-status">
+      <span class="stats" id="stats">Cargando…</span>
+    </div>
+    <div class="topbar-actions">
+      <button id="btnWifi" class="btn ghost" title="Conectar por ADB inalambrico (WiFi)">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2.5 9a15 15 0 0 1 19 0M5.5 12.5a10.5 10.5 0 0 1 13 0M8.6 16a6 6 0 0 1 6.8 0" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="19" r="1.6" fill="currentColor"/></svg>
+        <span>WiFi</span>
+      </button>
+      <button id="rescan" class="btn ghost" title="Volver a escanear el dispositivo">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 3v4h-4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Rescan</span>
+      </button>
+      <button id="export" class="btn solid" title="Exportar report.json + recommendations.txt">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v3h16v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span>Export</span>
+      </button>
+    </div>
+  </div>
+  <div id="scanbar" class="scanbar" style="display:none">
+    <div class="stats" id="scanmsg" aria-live="polite"></div>
+    <div class="scan-track"><div id="scanfill" class="scan-fill"></div></div>
   </div>
 </header>
 
 <div class="toolbar">
-  <input id="search" placeholder="🔍 Buscar paquete…" style="min-width:220px">
-  <span id="chips"></span>
-  <label class="stats">Agrupar:
-    <select id="group">
-      <option value="none">—</option>
-      <option value="risk">Riesgo</option>
-      <option value="type">Tipo</option>
-      <option value="installer">Installer</option>
-    </select>
+  <label class="searchbox">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="1.8"/><path d="m16.5 16.5 4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+    <input id="search" placeholder="Buscar paquete…" autocomplete="off" spellcheck="false">
   </label>
+  <nav id="chips" class="chips" aria-label="Filtros"></nav>
+  <div class="toolbar-right">
+    <label class="switch" title="Escanear tambien apps de sistema (bloatware)">
+      <input type="checkbox" id="sysToggle">
+      <span class="switch-track" aria-hidden="true"><span class="switch-dot"></span></span>
+      <span class="switch-label">Incluir sistema</span>
+    </label>
+    <label class="stats grouped">Agrupar:
+      <select id="group">
+        <option value="none">—</option>
+        <option value="risk">Riesgo</option>
+        <option value="type">Tipo</option>
+        <option value="installer">Installer</option>
+      </select>
+    </label>
+  </div>
 </div>
 
-<main>
-  <table>
-    <thead>
-      <tr>
-        <th style="width:28px"><input type="checkbox" id="selall"></th>
-        <th data-sort="stars" style="width:90px">Riesgo</th>
-        <th data-sort="package">Paquete</th>
-        <th data-sort="type" style="width:90px">Tipo</th>
-        <th style="width:40%">Flags</th>
-      </tr>
-    </thead>
-    <tbody id="rows"></tbody>
-  </table>
+<main class="page">
+  <section class="overview" aria-label="Resumen de riesgo">
+    <article class="ov-card ov-total">
+      <div class="ov-top"><span class="ov-label">Inventario</span><span class="ov-dot"></span></div>
+      <div class="ov-value" id="ovTotal">—</div>
+      <div class="ov-sub" id="ovSub">—</div>
+    </article>
+    <article class="ov-card ov-high">
+      <div class="ov-top"><span class="ov-label">Riesgo alto</span><span class="ov-dot"></span></div>
+      <div class="ov-value" id="ovHigh">—</div>
+      <div class="ov-sub">Score 80+ · revisar primero</div>
+    </article>
+    <article class="ov-card ov-crit">
+      <div class="ov-top"><span class="ov-label">Criticas</span><span class="ov-dot"></span></div>
+      <div class="ov-value" id="ovCrit">—</div>
+      <div class="ov-sub">Banca · mensajeria · sistema sensible</div>
+    </article>
+    <article class="ov-card ov-bloat">
+      <div class="ov-top"><span class="ov-label">Bloatware</span><span class="ov-dot"></span></div>
+      <div class="ov-value" id="ovBloat">—</div>
+      <div class="ov-sub">Candidatas a congelar o quitar</div>
+    </article>
+  </section>
+
+  <section class="table-card">
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:36px"><input type="checkbox" id="selall" aria-label="Seleccionar visibles"></th>
+            <th data-sort="stars" style="width:120px">Riesgo</th>
+            <th data-sort="package">Paquete</th>
+            <th data-sort="type" style="width:110px">Tipo</th>
+            <th style="width:38%">Flags</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div id="emptyState" class="empty" style="display:none">
+        <strong>Sin resultados</strong>
+        <span>Ajusta la busqueda o cambia de filtro para ver paquetes.</span>
+      </div>
+    </div>
+  </section>
+  <p class="footnote">Selecciona una fila para ver permisos, firmas, motivos de riesgo y metadatos del APK. Las acciones sobre apps de sistema estan limitadas a congelar.</p>
 </main>
 
-<div class="logpanel" id="logpanel">
+<div class="logpanel" id="logpanel" role="log" aria-label="Registro de acciones">
   <div class="loghdr">
     <b>Registro de acciones</b>
     <span id="logstatus" class="stats"></span>
     <span style="margin-left:auto"></span>
-    <button id="logclear" style="padding:3px 8px">Limpiar</button>
-    <button id="logclose" style="padding:3px 8px">Ocultar</button>
+    <button id="logclear" class="btn xs ghost">Limpiar</button>
+    <button id="logclose" class="btn xs ghost">Ocultar</button>
   </div>
   <div class="logbody" id="logbody"></div>
 </div>
 
 <div class="actionbar">
-  <span class="sel" id="selcount">0 seleccionadas</span>
-  <button id="btnLog" title="Ver registro en vivo">📜 Log</button>
-  <button id="btnFreeze">❄ Congelar</button>
-  <button id="btnUnfreeze">☀ Descongelar</button>
-  <button id="btnUninstall" class="danger">🗑 Desinstalar</button>
+  <span class="sel" id="selcount" aria-live="polite">0 seleccionadas</span>
+  <span class="action-hint">Congelar es reversible · Desinstalar es por-usuario</span>
+  <button id="btnLog" class="btn ghost" title="Ver registro en vivo">Log</button>
+  <button id="btnFreeze" class="btn ghost" title="Congelar paquetes seleccionados">Congelar</button>
+  <button id="btnUnfreeze" class="btn ghost" title="Descongelar paquetes seleccionados">Descongelar</button>
+  <button id="btnUninstall" class="btn danger" title="Desinstalar por-usuario">Desinstalar</button>
 </div>
 
 <div class="overlay-bg" id="obg"></div>
-<div class="drawer" id="drawer"></div>
-<div class="modal" id="modal"></div>
-<div class="modal" id="wifiModal">
-  <h3>📶 Conexión WiFi / ADB inalámbrico</h3>
+<aside class="drawer" id="drawer" aria-label="Detalle de paquete"></aside>
+<div class="modal" id="modal" role="dialog" aria-modal="true"></div>
+<div class="modal wide" id="wifiModal" role="dialog" aria-modal="true" aria-label="Conexion WiFi">
+  <h3>Conexion WiFi / ADB inalambrico</h3>
   <div class="wtabs">
     <button class="chip active" data-wtab="ip">IP directa</button>
     <button class="chip" data-wtab="pair">Pairing Android 11+</button>
     <button class="chip" data-wtab="discover">Discover</button>
   </div>
   <div id="wtab-ip" class="wtabpane">
-    <p class="hint">Requiere que el teléfono ya escuche en TCP. Una vez por USB:
-      <code>adb tcpip 5555</code>. En Android 11+ usa la pestaña Pairing.</p>
-    <label>IP <input id="wHost" placeholder="192.168.1.50"></label>
-    <label>Puerto <input id="wPort" value="5555" style="width:100px"></label>
-    <button class="primary" id="wConnectBtn">Conectar</button>
+    <p class="hint">Requiere que el telefono ya escuche en TCP. Una vez por USB:
+      <code>adb tcpip 5555</code>. En Android 11+ usa la pestana Pairing.</p>
+    <label>IP <input id="wHost" placeholder="192.168.1.50" inputmode="numeric"></label>
+    <label>Puerto <input id="wPort" value="5555" style="width:110px" inputmode="numeric"></label>
+    <button class="primary btn solid" id="wConnectBtn">Conectar</button>
   </div>
   <div id="wtab-pair" class="wtabpane" style="display:none">
-    <p class="hint">En el teléfono: Opciones de desarrollador → Depuración
-      inalámbrica → «Vincular dispositivo con código».</p>
-    <label>IP <input id="pHost" placeholder="192.168.1.50"></label>
-    <label>Puerto pairing <input id="pPort" placeholder="37451" style="width:110px"></label>
-    <label>Código <input id="pCode" placeholder="123456" style="width:110px"></label>
-    <button class="primary" id="wPairBtn">Vincular</button>
+    <p class="hint">En el telefono: Opciones de desarrollador → Depuracion
+      inalambrica → «Vincular dispositivo con codigo».</p>
+    <label>IP <input id="pHost" placeholder="192.168.1.50" inputmode="numeric"></label>
+    <label>Puerto pairing <input id="pPort" placeholder="37451" style="width:120px" inputmode="numeric"></label>
+    <label>Codigo <input id="pCode" placeholder="123456" style="width:120px" inputmode="numeric"></label>
+    <button class="primary btn solid" id="wPairBtn">Vincular</button>
     <div id="pairNote" class="hint"></div>
   </div>
   <div id="wtab-discover" class="wtabpane" style="display:none">
-    <p class="hint">Busca servicios mDNS anunciados por el teléfono.</p>
-    <button id="wDiscoverBtn">Buscar servicios mDNS</button>
+    <p class="hint">Busca servicios mDNS anunciados por el telefono.</p>
+    <button id="wDiscoverBtn" class="btn ghost">Buscar servicios mDNS</button>
     <div id="discoveryList"></div>
   </div>
-  <pre id="wifiLog" class="wifi-log"></pre>
+  <pre id="wifiLog" class="wifi-log" aria-live="polite"></pre>
   <div class="row">
-    <button onclick="closeWifi()">Cerrar</button>
+    <button class="btn ghost" onclick="closeWifi()">Cerrar</button>
   </div>
 </div>
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status"></div>
 
 <script src="/static/app.js" defer></script>
 </body>

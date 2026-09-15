@@ -2,9 +2,9 @@ let DATA = null, SORT = {key:"stars", dir:-1}, FILTER = "all", SEARCH = "";
 const SELECTED = new Set();
 
 const FILTERS = [
-  ["all","Todas"],["user","Usuario"],["system","Sistema"],["bloatware","🗑 Bloatware"],
+  ["all","Todas"],["user","Usuario"],["system","Sistema"],["bloatware","Bloatware"],
   ["overlay","Overlay"],["boot_completed","Boot"],["accessibility","Accessibility"],
-  ["unknown","Installer ?"],["high","⚠ Alto"],["critical","🔒 Críticas"]
+  ["unknown","Installer ?"],["high","Alto"],["critical","Criticas"]
 ];
 
 function stars(n){ return "★".repeat(n)+"☆".repeat(5-n); }
@@ -38,8 +38,8 @@ function visibleApps(){
 
 function flagChips(a){
   const f=[];
-  if(a.bloatware) f.push(`<span class="flag bloat" title="${a.bloatware.description||''} (${a.bloatware.removal||''})">🗑 ${a.bloatware.category||'bloat'}</span>`);
-  if(a.critical) f.push(`<span class="flag hot">🔒 crítica</span>`);
+  if(a.bloatware) f.push(`<span class="flag bloat" title="${a.bloatware.description||''} (${a.bloatware.removal||''})">${a.bloatware.category||'bloat'}</span>`);
+  if(a.critical) f.push(`<span class="flag hot">critica</span>`);
   if(a.overlay) f.push(`<span class="flag hot">overlay</span>`);
   if(a.accessibility) f.push(`<span class="flag hot">a11y</span>`);
   if(a.boot_completed) f.push(`<span class="flag">boot</span>`);
@@ -47,7 +47,7 @@ function flagChips(a){
   if(a.foreground_service) f.push(`<span class="flag">fgsvc</span>`);
   if(a.internet) f.push(`<span class="flag">net</span>`);
   if(a.installer_label==="Unknown") f.push(`<span class="flag">inst?</span>`);
-  if(a.frozen) f.push(`<span class="flag" style="color:var(--accent)">❄ frozen</span>`);
+  if(a.frozen) f.push(`<span class="flag frozen">frozen</span>`);
   return `<div class="flags">${f.join("")}</div>`;
 }
 
@@ -73,13 +73,14 @@ function render(){
     }
     const tr=document.createElement("tr");
     const col = a.stars>=4?"var(--red)":a.stars===3?"var(--amber)":"var(--muted)";
+    const pct = Math.max(0, Math.min(100, a.score_pct||0));
     tr.innerHTML=`
-      <td><input type="checkbox" data-pkg="${a.package}" ${SELECTED.has(a.package)?"checked":""}></td>
-      <td class="stars" style="color:${col}" title="${a.score_pct}/100">${stars(a.stars)}</td>
+      <td><input type="checkbox" data-pkg="${a.package}" ${SELECTED.has(a.package)?"checked":""} aria-label="Seleccionar ${a.package}"></td>
+      <td><span class="stars" style="color:${col}" title="${a.score_pct}/100">${stars(a.stars)}</span><span class="scorebar" aria-hidden="true"><i style="width:${pct}%"></i></span></td>
       <td class="pkg">
         <div class="pkg-cell">
           <img class="app-icon" src="/api/icon/${encodeURIComponent(a.package)}" loading="lazy" alt="">
-          <span>${a.package}</span>
+          <span title="${a.package}">${a.package}</span>
         </div>
       </td>
       <td><span class="badge ${a.type}">${a.type}</span></td>
@@ -92,6 +93,8 @@ function render(){
       if(i>0) td.addEventListener("click",()=>openDrawer(a)); });
     rows.appendChild(tr);
   }
+  const empty = document.getElementById("emptyState");
+  if(empty) empty.style.display = list.length ? "none" : "flex";
   updateSel();
 }
 
@@ -112,20 +115,21 @@ function updateSel(){
 
 function openDrawer(a){
   const d=document.getElementById("drawer");
-  const perms=(a.dangerous_permissions||[]).map(p=>`<div>✔ ${p.split(".").pop()}</div>`).join("")||"<div>—</div>";
+  const perms=(a.dangerous_permissions||[]).map(p=>`<div class="perm">· ${p.split(".").pop()}</div>`).join("")||"<div>—</div>";
   const reasons=(a.reasons||[]).map(r=>`<li>${r}</li>`).join("")||"<li>—</li>";
   d.innerHTML=`
-    <button onclick="closeAll()" style="float:right">✕</button>
+    <button class="btn xs ghost" onclick="closeAll()" style="float:right" aria-label="Cerrar detalle">Cerrar</button>
     <div class="drawer-hdr">
       <img class="drawer-icon" src="/api/icon/${encodeURIComponent(a.package)}" alt="">
       <div>
         <h2 style="margin:0 0 4px 0">${a.package}</h2>
-        <div>${stars(a.stars)} <b>${a.score_pct}/100</b>
-          ${a.critical?`<span class="badge crit">🔒 ${a.critical_reason||"crítica"}</span>`:""}</div>
+        <div class="riskline"><span class="stars">${stars(a.stars)}</span> <b>${a.score_pct}/100</b>
+          ${a.critical?`<span class="badge crit">${a.critical_reason||"critica"}</span>`:""}
+          ${a.frozen?`<span class="badge user">frozen</span>`:""}</div>
       </div>
     </div>
     <div class="kv">
-      <div>Tipo</div><div>${a.type}${a.frozen?" · ❄ frozen":""}</div>
+      <div>Tipo</div><div>${a.type}${a.frozen?" · frozen":""}</div>
       <div>Installer</div><div>${a.installer_label||"Unknown"}</div>
       <div>VersionName</div><div>${a.version_name||"—"}</div>
       <div>VersionCode</div><div>${a.version_code||"—"}</div>
@@ -135,7 +139,7 @@ function openDrawer(a){
       <div>APK</div><div class="pkg" style="word-break:break-all">${a.code_path||"—"}</div>
       <div>Firma (hash)</div><div class="pkg">${a.signature||"—"}</div>
       <div>Exported</div><div>act:${a.exported_activities||0} · svc:${a.exported_services||0} · rcv:${a.exported_receivers||0} · prov:${a.exported_providers||0}</div>
-      ${a.bloatware?`<div>Bloatware</div><div>🗑 ${a.bloatware.category} · <b>${a.bloatware.removal}</b><br><span class="stats">${a.bloatware.description||""}</span></div>`:""}
+      ${a.bloatware?`<div>Bloatware</div><div>${a.bloatware.category} · <b>${a.bloatware.removal}</b><br><span class="stats">${a.bloatware.description||""}</span></div>`:""}
     </div>
     <h3>Permisos peligrosos</h3>${perms}
     <h3>Motivos del riesgo</h3><ul>${reasons}</ul>`;
@@ -192,7 +196,7 @@ async function doAction(action, confirm=false){
   // Safety gate replies as JSON (not a stream).
   if(res.headers.get("Content-Type")?.includes("application/json")){
     const body=await res.json();
-    if(res.status===403){ toast("⛔ "+body.error); logLine("⛔ "+body.error,"err"); showLog(); return; }
+    if(res.status===403){ toast("Bloqueado: "+body.error); logLine("Bloqueado: "+body.error,"err"); showLog(); return; }
     if(res.status===409 && body.needs_confirm){ showConfirm(action, body); return; }
     toast("Error: "+(body.error||res.status)); return;
   }
@@ -201,7 +205,7 @@ async function doAction(action, confirm=false){
   let ok=0;
   await readNdjson(res, evt=>{
     if(evt.type==="progress"){
-      logLine(`[${evt.i}/${evt.n}] ${evt.ok?"✔":"✘"} ${evt.package} — ${evt.output||""}`, evt.ok?"ok":"err");
+      logLine(`[${evt.i}/${evt.n}] ${evt.ok?"OK":"ERROR"} ${evt.package} — ${evt.output||""}`, evt.ok?"ok":"err");
       if(evt.ok) ok++;
       logStatus(`${evt.i}/${evt.n}`);
     } else if(evt.type==="done"){
@@ -229,19 +233,19 @@ async function refreshState(){
 
 function showConfirm(action, body){
   const m=document.getElementById("modal");
-  const crit=body.critical.map(c=>`<li><b>${c.package}</b> — ${c.reason||"crítica"}</li>`).join("");
+  const crit=body.critical.map(c=>`<li><b>${c.package}</b> — ${c.reason||"critica"}</li>`).join("");
   const cmds=body.commands.map(c=>`<div><code>adb shell ${c}</code></div>`).join("");
   m.innerHTML=`
-    <h3>⚠ Confirmación requerida</h3>
+    <h3>Confirmacion requerida</h3>
     <div class="warnbox">
-      <b>La selección incluye apps críticas</b> (bancos / redes / mensajería).
+      <b>La seleccion incluye apps criticas</b> (bancos / redes / mensajeria).
       Congelarlas o desinstalarlas puede romper accesos importantes:
       <ul>${crit}</ul>
     </div>
-    <p>Se ejecutará:</p>${cmds}
+    <p>Se ejecutara:</p>${cmds}
     <div class="row">
-      <button onclick="closeAll()">Cancelar</button>
-      <button class="danger" onclick="closeAll();doAction('${action}',true)">
+      <button class="btn ghost" onclick="closeAll()">Cancelar</button>
+      <button class="danger btn danger" onclick="closeAll();doAction('${action}',true)">
         Entiendo, continuar</button>
     </div>`;
   m.classList.add("show");
@@ -253,12 +257,12 @@ function confirmUninstall(){
   const cmds=packages.map(p=>`<div><code>adb shell pm uninstall --user 0 ${p}</code></div>`).join("");
   const m=document.getElementById("modal");
   m.innerHTML=`
-    <h3>🗑 Desinstalar ${packages.length} app(s)</h3>
-    <div class="warnbox">Acción agresiva. Se ejecutará (por-usuario):</div>
+    <h3>Desinstalar ${packages.length} app(s)</h3>
+    <div class="warnbox">Accion agresiva. Se ejecutara (por-usuario):</div>
     ${cmds}
     <div class="row">
-      <button onclick="closeAll()">Cancelar</button>
-      <button class="danger" onclick="closeAll();doAction('uninstall')">Desinstalar</button>
+      <button class="btn ghost" onclick="closeAll()">Cancelar</button>
+      <button class="danger btn danger" onclick="closeAll();doAction('uninstall')">Desinstalar</button>
     </div>`;
   m.classList.add("show");
   document.getElementById("obg").classList.add("show");
@@ -267,9 +271,9 @@ function confirmUninstall(){
 function renderStats(){
   const c=DATA.counts;
   const off=document.getElementById("offlineBadge");
-  if(off) off.style.display=DATA.offline?"inline-block":"none";
+  if(off) off.style.display=DATA.offline?"inline-flex":"none";
   const nd=document.getElementById("noDeviceBadge");
-  if(nd) nd.style.display=(!DATA.offline && DATA.no_device)?"inline-block":"none";
+  if(nd) nd.style.display=(!DATA.offline && DATA.no_device)?"inline-flex":"none";
   if(DATA.offline || DATA.no_device){
     const r=document.getElementById("rescan");
     if(r){ r.disabled=true;
@@ -278,9 +282,15 @@ function renderStats(){
   }
   document.getElementById("stats").innerHTML=
     `${c.total} apps · ${c.user} usuario · ${c.system} sistema · `+
-    `<span class="badge warn">⚠ ${c.high_risk} alto</span> `+
-    `<span class="badge crit">🔒 ${c.critical} críticas</span> `+
-    `<span class="badge sys">🗑 ${c.bloatware||0} bloatware</span>`;
+    `<span class="badge warn">${c.high_risk} alto</span> `+
+    `<span class="badge crit">${c.critical} criticas</span> `+
+    `<span class="badge sys">${c.bloatware||0} bloatware</span>`;
+  const set = (id, v) => { const el=document.getElementById(id); if(el) el.textContent=v; };
+  set("ovTotal", c.total ?? "—");
+  set("ovHigh", c.high_risk ?? "—");
+  set("ovCrit", c.critical ?? "—");
+  set("ovBloat", c.bloatware ?? 0);
+  set("ovSub", `${c.user ?? 0} usuario · ${c.system ?? 0} sistema`);
 }
 
 async function reload(keepSel=false){
@@ -385,7 +395,7 @@ async function wifiStatus(){
     const j=await(await fetch("/api/device/status")).json();
     const note=document.getElementById("pairNote");
     if(!j.supports_pairing){
-      note.textContent="⚠ Este adb no soporta pairing (requiere platform-tools 30+). "+
+      note.textContent="Este adb no soporta pairing (requiere platform-tools 30+). "+
         "Usa 'IP directa' o actualiza adb.";
     }else{
       note.textContent="adb "+((j.adb&&j.adb.version)||"")+" · pairing disponible";
